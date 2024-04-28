@@ -1,0 +1,122 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+n = 50
+b = 2            
+a = 1
+y = rep(0, n)
+y[1] = 4             
+for (i in 2:n) y[i] = a +  b*y[i-1]  
+plot(y, type="o", main="first-order deterministic DE")
+```
+```{r}
+n = 30; a = 4; b = 2; c = 1; d = 1.5; p0=0.2
+d.v = rep(0,n); s.v = rep(0,n); p.v = rep(0,n)
+p.v[1] = p0
+t = 2
+while (t<n+1) {
+s.v[t] = c + d*p.v[t-1]  # supply 
+d.v[t] = s.v[t]          # market-clearing
+p.v[t] = (a-d.v[t])/b    # demand
+t = t+1
+}
+
+cbind(p.v, d.v, s.v)
+plot(1:n, p.v, type="o", main = "Convergence with damping overshooting", xlab="period", ylab = "price")
+```
+
+
+```{r}
+data = read.table("gdp.txt", header=T)  
+head(data)
+```
+
+```{r}
+# declare quarterly time series that starts in 1947
+gdp = ts(data[,2], start=1947, frequency=4) 
+```
+
+
+```{r}
+# time series plots of gdp and gdp growth
+gdp.growth = diff(gdp)
+par(mfrow=c(1,2)) 
+ts.plot(gdp,type="l", main = "GDP")
+ts.plot(gdp.growth,type="l", main = "GDP Growth")
+```
+```{r}
+# linear trend model---assuming constant change in value
+trend = 1:length(gdp)          # generate the trend
+m1 = lm(gdp~trend)             # regress gdp onto trend
+summary(m1)
+```
+```{r}
+fit1 = fitted(m1)              # fitted value
+ts.plot(gdp, fit1, lty=c(1:2))
+```
+```{r}
+# log linear trend model---assuming constant change in percent
+lgdp = log(gdp)                # generate log gep
+m2 = lm(lgdp~trend)            # regress log gdp onto trend
+summary(m2)
+fit2 = fitted(m2)              
+ts.plot(lgdp, fit2, lty=c(1:2)) 
+```
+
+```{r}
+# Quadratic trend model 
+trendsq = trend^2              
+m3 = lm(gdp~trend+trendsq)
+summary(m3)
+fit3 = fitted(m3)              
+ts.plot(gdp, fit3, lty=c(1:2))
+```
+```{r}
+# Ljungâ€“Box test applied to a white noise series
+set.seed(12345)
+n = 100
+wn = rnorm(n)
+Box.test(wn, lag = 1, type = "Ljung")
+```
+
+
+```{r}
+
+
+# Ljungâ€“Box test applied to a white noise series
+set.seed(12345)
+n = 100
+wn = rnorm(n)
+Box.test(wn, lag = 1, type = "Ljung")
+
+# Adding lag value
+gdp.lag1 = c(NA, gdp[1:(length(gdp)-1)])     # generate the first lag of gdp
+m4 = lm(gdp~trend+trendsq+gdp.lag1)
+summary(m4)
+Box.test(m4$res, lag = 4, type = "Ljung")
+library(lmtest)
+dwtest(m4)                                   # Durbin-Watson Test
+
+# Warning: avoid using lag() function!
+head(gdp.lag1)
+head(lag(gdp))
+
+# quarterly rate (decimal) and annualized rate (percent) of gdp growth
+mean(diff(log(gdp)))
+mean(diff(log(gdp))*400)
+
+# Optional: trigonometric model 
+k = 0.1/length(trend)
+si =sin(2*3.1415*k*trend)
+co =cos(2*3.1415*k*trend)
+m5 = lm(gdp~si+co)
+summary(m5)            
+ts.plot(gdp, fitted(m5), lty=c(1:2))
+
+
+
+```
+
+
